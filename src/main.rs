@@ -23,6 +23,8 @@ enum RvuError {
     NoPrimaryMonitor,
     #[error("Unable to create pixel to display")]
     PIxelError(#[from] pixels::Error),
+    #[error("Could not render RGB8 from image")]
+    RgbError,
 }
 
 #[derive(Debug, Parser)]
@@ -65,7 +67,8 @@ fn main() -> Result<()> {
     let surface = SurfaceTexture::new(window_inner_size.width, window_inner_size.height, &window);
     let mut pixels = Pixels::new(image.width(), image.height(), surface)?;
 
-    let image_bytes = image.as_rgb8().unwrap().as_flat_samples();
+    let image_bytes = image.as_rgb8().ok_or(RvuError::RgbError)?;
+    let image_bytes = image_bytes.as_flat_samples();
     let image_bytes = image_bytes.as_slice();
 
     let pixels_bytes = pixels.get_frame();
