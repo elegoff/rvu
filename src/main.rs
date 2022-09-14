@@ -1,3 +1,4 @@
+use clap::Parser;
 use thiserror::Error;
 use winit::{
     error::OsError,
@@ -12,12 +13,24 @@ enum RvuError {
     WindowError(#[from] OsError),
 }
 
+#[derive(Debug, Parser)]
+#[clap(author, version, about)]
+struct Config {
+    /// Name of the image to view
+    file_name: String,
+}
+
 type Result<T> = std::result::Result<T, RvuError>;
 
 fn main() -> Result<()> {
+    let config = Config::parse();
+    println!("The filename is {}", config.file_name);
+
     let event_loop = EventLoop::new();
 
-    let window = WindowBuilder::new().with_title("RVU").build(&event_loop)?;
+    let window = WindowBuilder::new()
+        .with_title("My image viewer")
+        .build(&event_loop)?;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
