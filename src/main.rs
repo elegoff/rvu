@@ -1,16 +1,23 @@
+use thiserror::Error;
 use winit::{
+    error::OsError,
     event::{ElementState, KeyboardInput, VirtualKeyCode},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
 
-fn main() {
+#[derive(Debug, Error)]
+enum RvuError {
+    #[error("Unable to create window")]
+    WindowError(#[from] OsError),
+}
+
+type Result<T> = std::result::Result<T, RvuError>;
+
+fn main() -> Result<()> {
     let event_loop = EventLoop::new();
 
-    let window = WindowBuilder::new()
-        .with_title("RVU")
-        .build(&event_loop)
-        .unwrap();
+    let window = WindowBuilder::new().with_title("RVU").build(&event_loop)?;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;

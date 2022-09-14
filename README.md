@@ -1,4 +1,2 @@
 # rvu
-This is a Rust project from a trabscription of that [video](https://www.youtube.com/watch?v=1yofBPRx864)
-
-from the ["Rust and C++ Cardiff" meetup](https://www.meetup.com/rust-and-c-plus-plus-in-cardiff/)
+This is a Rust project based on a transcription of that [youtube video](https://www.youtube.com/watch?v=1yofBPRx864) published by the ["Rust and C++ Cardiff" meetup](https://www.meetup.com/rust-and-c-plus-plus-in-cardiff/)  for their ["Rust image viewer from scratch" session](https://www.meetup.com/rust-and-c-plus-plus-in-cardiff/events/285193324/) on April 20th, 2022
