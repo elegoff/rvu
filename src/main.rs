@@ -1,6 +1,7 @@
 use std::cmp::max;
 
 use clap::Parser;
+use pixels::{Pixels, SurfaceTexture};
 use thiserror::Error;
 use winit::{
     dpi::PhysicalSize,
@@ -20,6 +21,8 @@ enum RvuError {
     IOError(#[from] std::io::Error),
     #[error("Unable to calculate screen size")]
     NoPrimaryMonitor,
+    #[error("Unable to create pixel to display")]
+    PIxelError(#[from] pixels::Error),
 }
 
 #[derive(Debug, Parser)]
@@ -37,11 +40,6 @@ fn main() -> Result<()> {
     let config = Config::parse();
 
     let image = image::io::Reader::open(config.file_name)?.decode()?;
-
-    let w = image.width();
-    let h = image.height();
-
-    println!("image is {} by {}", w, h);
 
     let event_loop = EventLoop::new();
     let primary_monitor = event_loop
@@ -64,13 +62,32 @@ fn main() -> Result<()> {
         .with_inner_size(window_inner_size)
         .build(&event_loop)?;
 
+    let surface = SurfaceTexture::new(window_inner_size.width, window_inner_size.height, &window);
+    let mut pixels = Pixels::new(image.width(), image.height(), surface)?;
+
+    let image_bytes = image.as_rgb8().unwrap().as_flat_samples();
+    let image_bytes = image_bytes.as_slice();
+
+    let pixels_bytes = pixels.get_frame();
+    image_bytes
+        .chunks_exact(3)
+        .zip(pixels_bytes.chunks_exact_mut(4))
+        .for_each(|(image_pixel, pixel)| {
+            pixel[0] = image_pixel[0];
+            pixel[1] = image_pixel[1];
+            pixel[2] = image_pixel[2];
+            pixel[3] = 0xff;
+        });
+
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
         match event {
             winit::event::Event::WindowEvent { window_id, event } if window_id == window.id() => {
                 match event {
-                    winit::event::WindowEvent::Resized(_) => (),
+                    winit::event::WindowEvent::Resized(size) => {
+                        resize(&mut pixels, &size);
+                    }
 
                     winit::event::WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
 
@@ -84,17 +101,22 @@ fn main() -> Result<()> {
                         ..
                     } => *control_flow = ControlFlow::Exit,
 
-                    winit::event::WindowEvent::ScaleFactorChanged {
-                        scale_factor: _,
-                        new_inner_size: _,
-                    } => todo!(),
+                    winit::event::WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                        resize(&mut pixels, &new_inner_size);
+                    }
                     _ => (),
                 }
             }
-            winit::event::Event::RedrawRequested(_) => (),
+            winit::event::Event::RedrawRequested(_) => {
+                let _ = pixels.render();
+            }
             _ => (),
         }
     });
+}
+
+fn resize(pixels: &mut Pixels, size: &PhysicalSize<u32>) {
+    pixels.resize_surface(size.width, size.height);
 }
 
 fn calc_scale(max_size: u32, cur_size: u32) -> u32 {
